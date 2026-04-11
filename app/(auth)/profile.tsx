@@ -19,7 +19,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth } from "../providers/AuthProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { getUserData, saveUserData } from "../utils/storage";
@@ -70,8 +70,7 @@ const sendNotification = async (title: string, body: string) => {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { signOut } = useAuth();
-  const { user } = useUser();
+  const { user, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [name, setName] = useState("");
@@ -130,12 +129,12 @@ export default function ProfilePage() {
         const savedDarkMode = await getUserData(userId, "darkmode");
         let savedImage = await getUserData(userId, "image");
 
-        if (!savedName && user?.fullName) {
-          savedName = user.fullName;
+        if (!savedName && user?.full_name) {
+          savedName = user.full_name;
         }
 
-        if (!savedImage && user?.imageUrl) {
-          savedImage = user.imageUrl;
+        if (!savedImage && user?.avatar_url) {
+          savedImage = user.avatar_url;
           await saveUserData(userId, "image", savedImage);
         }
 
@@ -172,7 +171,7 @@ export default function ProfilePage() {
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
-  const initials = getInitials((nickname || name || user?.fullName) ?? undefined);
+  const initials = getInitials((nickname || name || user?.full_name) ?? undefined);
 
   const handleSave = async () => {
     if (!user) return;

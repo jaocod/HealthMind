@@ -1,15 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { ClerkProvider, useAuth as useClerkAuth, useUser } from "@clerk/clerk-expo"
-import { tokenCache } from "@clerk/clerk-expo/token-cache"
-import Constants from 'expo-constants'
+import React, { createContext, useContext } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
-import { userService } from '../services/database'
 
-interface AuthContextType {
+export interface User {
+  id: string
+  email: string
+  full_name?: string
+  avatar_url?: string
+}
+
+export interface AuthContextType {
   isSignedIn: boolean
-  user: any
+  user: User | null
   loading: boolean
   signOut: () => Promise<void>
+  signIn: (email: string, password: string) => Promise<any>
+  signUp: (email: string, password: string, metadata?: any) => Promise<any>
+  resetPassword: (email: string) => Promise<any>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,46 +29,75 @@ export const useAuth = () => {
 }
 
 const AuthProviderContent = ({ children }: { children: React.ReactNode }) => {
-  const { isSignedIn: clerkSignedIn } = useClerkAuth()
-  const { user: clerkUser } = useUser()
-  const { user: supabaseUser, signOut: supabaseSignOut } = useSupabaseAuth()
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const syncUsers = async () => {
-      if (clerkSignedIn && clerkUser && supabaseUser) {
-        try {
-          // Sincronizar dados do usuário entre Clerk e Supabase
-          await userService.upsertUser({
-            id: clerkUser.id,
-            email: clerkUser.emailAddresses[0]?.emailAddress || '',
-            full_name: clerkUser.fullName || clerkUser.firstName + ' ' + clerkUser.lastName,
-            avatar_url: clerkUser.imageUrl,
-          })
-        } catch (error) {
-          console.error('Erro ao sincronizar usuário:', error)
-        }
-      }
-      setLoading(false)
-    }
-
-    syncUsers()
-  }, [clerkSignedIn, clerkUser, supabaseUser])
+  const {
+    user: supabaseUser,
+    loading: supabaseLoading,
+    signIn: supabaseSignIn,
+    signUp: supabaseSignUp,
+    signOut: supabaseSignOut,
+    resetPassword: supabaseResetPassword,
+  } = useSupabaseAuth()
 
   const signOut = async () => {
     try {
-      await supabaseSignOut()
-      // O Clerk será gerenciado pelo próprio Clerk
+      const { error } = await supabaseSignOut()
+      if (error) throw error
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
+      throw error
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabaseSignIn(email, password)
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      console.error('Erro ao fazer login:', error)
+      return { data: null, error }
+    }
+  }
+
+  const signUp = async (email: string, password: string, metadata?: any) => {
+    try {
+      const { data, error } = await supabaseSignUp(email, password, metadata)
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      console.error('Erro ao registrar:', error)
+      return { data: null, error }
+    }
+  }
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { data, error } = await supabaseResetPassword(email)
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      console.error('Erro ao resetar senha:', error)
+      return { data: null, error }
     }
   }
 
   const value: AuthContextType = {
-    isSignedIn: clerkSignedIn || false,
-    user: clerkUser,
-    loading,
+    isSignedIn: Boolean(supabaseUser),
+    user: supabaseUser
+      ? {
+          id: supabaseUser.id,
+          email: supabaseUser.email || '',
+          full_name:
+            supabaseUser.user_metadata?.full_name ||
+            supabaseUser.user_metadata?.name,
+          avatar_url: supabaseUser.user_metadata?.avatar_url,
+        }
+      : null,
+    loading: supabaseLoading,
     signOut,
+    signIn,
+    signUp,
+    resetPassword,
   }
 
   return (
@@ -73,25 +108,10 @@ const AuthProviderContent = ({ children }: { children: React.ReactNode }) => {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Fallback chain for publishable key to support dev, expo start and EAS builds
-  const publishKey =
-    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-    // expo config's extra (EAS/build-time)
-    (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-  // legacy manifest extra (older expo versions / dev)
-  ((Constants as any).manifest?.extra as any)?.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-    ''
-
-  if (!publishKey) {
-    console.warn('Clerk publishable key is missing. Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in env or EAS secrets.')
-  }
-
   return (
-    <ClerkProvider tokenCache={tokenCache} publishableKey={publishKey}>
-      <AuthProviderContent>
-        {children}
-      </AuthProviderContent>
-    </ClerkProvider>
+    <AuthProviderContent>
+      {children}
+    </AuthProviderContent>
   )
 }
 

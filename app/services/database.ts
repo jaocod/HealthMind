@@ -1,15 +1,10 @@
 import { supabase, User, MoodEntry, Professional, Challenge, UserChallenge, Achievement, UserAchievement } from '../lib/supabase'
 
-function getSupabase() {
-  if (!supabase) throw new Error('Supabase client not initialized')
-  return supabase
-}
-
 // Serviços de usuário
 export const userService = {
   // Criar ou atualizar perfil do usuário
   async upsertUser(userData: Partial<User>) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('users')
       .upsert(userData, { onConflict: 'id' })
       .select()
@@ -21,7 +16,7 @@ export const userService = {
 
   // Buscar usuário por ID
   async getUserById(userId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -33,7 +28,7 @@ export const userService = {
 
   // Atualizar perfil do usuário
   async updateUser(userId: string, updates: Partial<User>) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('users')
       .update(updates)
       .eq('id', userId)
@@ -49,7 +44,7 @@ export const userService = {
 export const moodService = {
   // Salvar entrada de humor
   async saveMoodEntry(userId: string, mood: string, note?: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('mood_entries')
       .insert({
         user_id: userId,
@@ -65,7 +60,7 @@ export const moodService = {
 
   // Buscar entradas de humor do usuário
   async getUserMoodEntries(userId: string, limit = 30) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('mood_entries')
       .select('*')
       .eq('user_id', userId)
@@ -80,7 +75,7 @@ export const moodService = {
   async getTodayMood(userId: string) {
     const today = new Date().toISOString().split('T')[0]
     
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('mood_entries')
       .select('*')
       .eq('user_id', userId)
@@ -99,7 +94,7 @@ export const moodService = {
 export const professionalService = {
   // Buscar todos os profissionais
   async getAllProfessionals() {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('professionals')
       .select('*')
       .order('rating', { ascending: false })
@@ -110,7 +105,7 @@ export const professionalService = {
 
   // Buscar profissionais por especialidade
   async getProfessionalsBySpecialty(specialty: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('professionals')
       .select('*')
       .eq('specialty', specialty)
@@ -122,7 +117,7 @@ export const professionalService = {
 
   // Buscar profissionais disponíveis
   async getAvailableProfessionals() {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('professionals')
       .select('*')
       .eq('available', true)
@@ -137,7 +132,7 @@ export const professionalService = {
 export const challengeService = {
   // Buscar todos os desafios
   async getAllChallenges() {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('challenges')
       .select('*')
       .order('created_at', { ascending: true })
@@ -148,7 +143,7 @@ export const challengeService = {
 
   // Buscar desafios do usuário
   async getUserChallenges(userId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_challenges')
       .select(`
         *,
@@ -163,7 +158,7 @@ export const challengeService = {
 
   // Completar desafio
   async completeChallenge(userId: string, challengeId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_challenges')
       .upsert({
         user_id: userId,
@@ -180,7 +175,7 @@ export const challengeService = {
 
   // Verificar se desafio foi completado
   async isChallengeCompleted(userId: string, challengeId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_challenges')
       .select('completed')
       .eq('user_id', userId)
@@ -196,7 +191,7 @@ export const challengeService = {
 export const achievementService = {
   // Buscar todas as conquistas
   async getAllAchievements() {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('achievements')
       .select('*')
       .order('created_at', { ascending: true })
@@ -207,7 +202,7 @@ export const achievementService = {
 
   // Buscar conquistas do usuário
   async getUserAchievements(userId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_achievements')
       .select(`
         *,
@@ -222,7 +217,7 @@ export const achievementService = {
 
   // Desbloquear conquista
   async unlockAchievement(userId: string, achievementId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_achievements')
       .insert({
         user_id: userId,
@@ -238,7 +233,7 @@ export const achievementService = {
 
   // Verificar se conquista foi desbloqueada
   async isAchievementUnlocked(userId: string, achievementId: string) {
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('user_achievements')
       .select('id')
       .eq('user_id', userId)
@@ -253,6 +248,7 @@ export const achievementService = {
 export default {
   userService,
   moodService,
+  professionalService,
   challengeService,
   achievementService,
 }

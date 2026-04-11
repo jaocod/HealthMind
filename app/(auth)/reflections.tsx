@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth} from "../providers/AuthProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUserData, saveUserData } from "../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -40,7 +40,7 @@ const moods = [
 
 export default function ReflectionsPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user } = useAuth();
   const [reflections, setReflections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

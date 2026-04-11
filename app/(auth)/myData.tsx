@@ -136,7 +136,7 @@ export default function MyDataPage() {
 
               <TouchableOpacity style={styles.professionalButton} onPress={() => {
                 router.push({
-                  pathname: "/(auth)/test",
+                  pathname: "/(auth)/profile",
                 })
               }}>
                 <Ionicons name="information-circle-outline" size={18} color={colors.primaryDark} />

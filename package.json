@@ -13,13 +13,13 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@clerk/clerk-expo": "^2.19.14",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-picker/picker": "2.11.1",
-    "@supabase/supabase-js": "^2.75.1",
+    "@supabase/supabase-js": "^2.103.0",
     "dotenv": "^17.2.3",
+    "eas": "^0.1.0",
     "expo": "~54.0.30",
     "expo-auth-session": "~7.0.10",
     "expo-constants": "~18.0.10",

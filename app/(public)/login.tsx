@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { Platform } from "react-native";
+import { useState } from "react";
 import {
   View,
   ScrollView,
@@ -16,13 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import colors from '../theme/colors';
 import { Link, useRouter } from "expo-router";
-import { useOAuth, useSignIn, useUser } from "@clerk/clerk-expo";
-import * as WebBrowser from "expo-web-browser";
-import AsyncStorage from "@react-native-async-storage/async-storage"; 
-import * as linking from 'expo-linking';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../providers/AuthProvider";
 
 const { width, height } = Dimensions.get("window");
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -30,22 +26,26 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const { signIn } = useAuth();
   const router = useRouter();
-  const googleOAuth = useOAuth({ strategy: "oauth_google" }); // <-- Mova para o topo do componente
-  const { user } = useUser(); // Adicione este hook
 
   async function handleLogin() {
-    if (!isLoaded) return;
+    if (!email || !senha) {
+      setErro("Email e senha são obrigatórios");
+      return;
+    }
+
     setIsLoading(true);
     setErro("");
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password: senha,
-      });
-      await setActive({ session: result.createdSessionId });
-      // Aqui você pode verificar o onboarding
+      const { data, error } = await signIn(email, senha);
+      
+      if (error) {
+        setErro(error?.message || "Email ou senha inválidos.");
+        return;
+      }
+
+      // Verificar onboarding
       const onboardingComplete = await AsyncStorage.getItem("onboardingComplete");
       if (!onboardingComplete) {
         router.replace("/onboarding");
@@ -53,55 +53,11 @@ export default function LoginScreen() {
         router.replace("/(tabs)/home");
       }
     } catch (e: any) {
-      setErro(e.errors?.[0]?.message || "Email ou senha inválidos.");
+      setErro(e.message || "Email ou senha inválidos.");
     } finally {
       setIsLoading(false);
     }
   }
-
-  async function OnGoogleSignIn() {
-    try {
-      const redirectUrl = linking.createURL('/');
-      const oAuthFlow = await googleOAuth.startOAuthFlow({ redirectUrl });
-
-      if (oAuthFlow.authSessionResult?.type === "success") {
-        if (oAuthFlow.setActive) {
-          await oAuthFlow.setActive({ session: oAuthFlow.createdSessionId });
-
-          // Aguarde o Clerk atualizar o usuário
-          setTimeout(async () => {
-            // Pegue os dados do usuário logado
-            const currentUser = user;
-            if (currentUser) {
-              await AsyncStorage.setItem("profile_email", currentUser.emailAddresses[0]?.emailAddress || "");
-              await AsyncStorage.setItem("profile_name", currentUser.fullName || "");
-              await AsyncStorage.setItem("profile_photo", currentUser.imageUrl || "");
-            }
-            // Verifique onboarding após login social
-            const onboardingComplete = await AsyncStorage.getItem("onboardingComplete");
-            if (!onboardingComplete) {
-              router.replace("/onboarding");
-            } else {
-              router.replace("/(tabs)/home");
-            }
-          }, 500); // Pequeno delay para garantir que Clerk atualizou
-        }
-      } else {
-        console.log("Google Sign-In cancelled or failed");
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
-  useEffect(() => {
-    if (Platform.OS !== "web") {
-      WebBrowser.warmUpAsync();
-      return () => {
-        WebBrowser.coolDownAsync();
-      };
-    }
-  }, []);
 
   return (
     <LinearGradient
@@ -231,11 +187,11 @@ export default function LoginScreen() {
 
           {/* Social Buttons */}
           <View style={styles.socialButtonsContainer}>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7} onPress={OnGoogleSignIn}>
+            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7} disabled>
               <Text style={styles.socialButtonText}>G</Text>
               <Text style={styles.socialButtonLabel}>Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7} disabled>
               <Text style={styles.socialButtonText}>f</Text>
               <Text style={styles.socialButtonLabel}>Facebook</Text>
             </TouchableOpacity>

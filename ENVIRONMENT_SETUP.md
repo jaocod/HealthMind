@@ -8,9 +8,6 @@ Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 # Supabase Configuration
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Clerk Configuration (existing)
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 ```
 
 ## Como obter as credenciais do Supabase:
@@ -127,10 +124,16 @@ ALTER TABLE mood_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 
+-- Criar índices para melhor performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_mood_entries_user_id ON mood_entries(user_id);
+CREATE INDEX idx_user_challenges_user_id ON user_challenges(user_id);
+CREATE INDEX idx_user_achievements_user_id ON user_achievements(user_id);
+
 -- Políticas de segurança
-CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id::text);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid()::text = id::text);
-CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid()::text = id::text);
+CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id::text);
+CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id::text);
+CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id::text);
 
 CREATE POLICY "Users can view own mood entries" ON mood_entries FOR SELECT USING (auth.uid()::text = user_id::text);
 CREATE POLICY "Users can insert own mood entries" ON mood_entries FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);

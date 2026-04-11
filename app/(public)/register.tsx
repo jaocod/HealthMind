@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import {
   View,
@@ -17,11 +16,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../providers/AuthProvider";
 
 const { width, height } = Dimensions.get("window");
 
 export default function RegisterScreen() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp } = useAuth();
   const router = useRouter();
 
   const [nome, setNome] = useState("");
@@ -31,8 +31,6 @@ export default function RegisterScreen() {
   const [mes, setMes] = useState("");
   const [ano, setAno] = useState("");
   const [genero, setGenero] = useState("");
-  const [emailpending, setEmailPending] = useState(false);
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,41 +45,37 @@ export default function RegisterScreen() {
     ano.length === 4 &&
     genero !== "";
 
-  async function handleregister() {
-    setErro("");
-    setLoading(true);
-    try {
-      if (!isLoaded) return;
-      await signUp.create({
-        emailAddress: email,
-        password: senha,
-      });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setEmailPending(true);
-      await AsyncStorage.setItem("profile_email", email);
-    } catch (err: any) {
-      setErro(err.errors?.[0]?.message || "Erro ao criar conta.");
+  async function handleRegister() {
+    if (!camposValidos) {
+      setErro("Por favor, preencha todos os campos corretamente.");
+      return;
     }
-    setLoading(false);
-  }
-
-  async function handleVerifyAccount() {
     setErro("");
     setLoading(true);
     try {
-      if (!isLoaded) return;
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code,
-      });
+      const dataNascimento = `${ano}-${mes}-${dia}`;
+      const metadata = {
+        full_name: nome,
+        birth_date: dataNascimento,
+        gender: genero,
+      };
 
-      if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
-        await AsyncStorage.removeItem("onboardingComplete"); // <-- Adicione esta linha
-        router.replace("/onboarding");
+      const { data, error } = await signUp(email, senha, metadata);
+
+      if (error) {
+        setErro(error?.message || "Erro ao criar conta.");
+        return;
       }
 
+      // Salvar dados do perfil
+      await AsyncStorage.setItem("profile_email", email);
+      await AsyncStorage.setItem("profile_name", nome);
+      await AsyncStorage.removeItem("onboardingComplete");
+
+      // Redirecionar para onboarding
+      router.replace("/onboarding");
     } catch (err: any) {
-      setErro(err.errors?.[0]?.message || "Erro ao verificar código.");
+      setErro(err.message || "Erro ao criar conta.");
     }
     setLoading(false);
   }
@@ -113,221 +107,177 @@ export default function RegisterScreen() {
       >
         {erro ? <Text style={styles.error}>{erro}</Text> : null}
         <ScrollView showsVerticalScrollIndicator={false}>
-          {!emailpending && (
-            <>
-              {/* Nome */}
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <FontAwesome
-                    name="user"
-                    size={20}
-                    color="#9CA3AF"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Nome de Usuário"
-                    placeholderTextColor="#9CA3AF"
-                    value={nome}
-                    onChangeText={setNome}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-              {/* Email */}
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color="#9CA3AF"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Email"
-                    placeholderTextColor="#9CA3AF"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
-              {/* Senha */}
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color="#9CA3AF"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={[styles.textInput, { paddingRight: 50 }]}
-                    placeholder="Senha (mín. 6 caracteres)"
-                    placeholderTextColor="#9CA3AF"
-                    value={senha}
-                    onChangeText={setSenha}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Ionicons
-                      name={showPassword ? "eye-off-outline" : "eye-outline"}
-                      size={20}
-                      color="#9CA3AF"
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* Data de nascimento */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.birthLabel}>Data de Nascimento</Text>
-                <View style={styles.birthInputs}>
-                  <TextInput
-                    style={styles.birthInput}
-                    placeholder="DD"
-                    placeholderTextColor="#9CA3AF"
-                    value={dia}
-                    onChangeText={setDia}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <TextInput
-                    style={styles.birthInput}
-                    placeholder="MM"
-                    placeholderTextColor="#9CA3AF"
-                    value={mes}
-                    onChangeText={setMes}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <TextInput
-                    style={styles.birthInput}
-                    placeholder="AAAA"
-                    placeholderTextColor="#9CA3AF"
-                    value={ano}
-                    onChangeText={setAno}
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
-                </View>
-              </View>
-              {/* Gênero */}
-              <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
-                  <FontAwesome
-                    name="venus-mars"
-                    size={20}
-                    color="#9CA3AF"
-                    style={styles.inputIcon}
-                  />
-                  <Picker
-                    selectedValue={genero}
-                    style={styles.picker}
-                    onValueChange={(itemValue) => {
-                      if (itemValue !== "") setGenero(itemValue);
-                    }}
-                    dropdownIconColor="#9CA3AF"
-                  >
-                    <Picker.Item
-                      label="Selecione o gênero"
-                      value=""
-                      color="#9CA3AF"
-                    />
-                    <Picker.Item label="Masculino" value="Masculino" />
-                    <Picker.Item label="Feminino" value="Feminino" />
-                    <Picker.Item label="Outro" value="Outro" />
-                    <Picker.Item
-                      label="Prefiro não dizer"
-                      value="Prefiro não dizer"
-                    />
-                  </Picker>
-                </View>
-              </View>
-              {/* Botão Criar Conta */}
-              <TouchableOpacity
-                style={[
-                  styles.registerButtonWrapper,
-                  (!camposValidos || loading) && styles.registerButtonDisabled,
-                ]}
-                onPress={handleregister}
-                disabled={!camposValidos || loading}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={["#A259F7", "#c85efd", "#be41fd"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.registerButton}
-                >
-                  {loading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                      <Text style={styles.registerButtonText}>Criando...</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.registerButtonText}>Criar Conta</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-              {/* Link para login */}
-              <View style={styles.signInContainer}>
-                <Text style={styles.signInText}>Já tem uma conta? </Text>
-                <TouchableOpacity>
-                  <Link href="/login">
-                    <Text style={styles.signInLink}>Entrar</Text>
-                  </Link>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-
-          {/* Verificação de código */}
-          {emailpending && (
-            <View style={{ marginTop: 20 }}>
-              <Text style={styles.title}>
-                Digite o código enviado ao seu email
-              </Text>
+          {/* Nome */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <FontAwesome
+                name="user"
+                size={20}
+                color="#9CA3AF"
+                style={styles.inputIcon}
+              />
               <TextInput
-                style={styles.input}
-                placeholder="Código"
-                placeholderTextColor="#666"
-                value={code}
-                onChangeText={setCode}
-                keyboardType="numeric"
-                maxLength={6}
+                style={styles.textInput}
+                placeholder="Nome de Usuário"
+                placeholderTextColor="#9CA3AF"
+                value={nome}
+                onChangeText={setNome}
+                autoCapitalize="words"
+              />
+            </View>
+          </View>
+          {/* Email */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color="#9CA3AF"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+          {/* Senha */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#9CA3AF"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.textInput, { paddingRight: 50 }]}
+                placeholder="Senha (mín. 6 caracteres)"
+                placeholderTextColor="#9CA3AF"
+                value={senha}
+                onChangeText={setSenha}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity
-                style={[
-                  styles.registerButtonWrapper,
-                  loading && styles.registerButtonDisabled,
-                ]}
-                onPress={handleVerifyAccount}
-                disabled={loading || code.length < 4}
-                activeOpacity={0.8}
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
               >
-                <LinearGradient
-                  colors={["#A259F7", "#c85efd", "#be41fd"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.registerButton}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.registerButtonText}>Ativar Conta</Text>
-                  )}
-                </LinearGradient>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#9CA3AF"
+                />
               </TouchableOpacity>
             </View>
-          )}
+          </View>
+          {/* Data de nascimento */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.birthLabel}>Data de Nascimento</Text>
+            <View style={styles.birthInputs}>
+              <TextInput
+                style={styles.birthInput}
+                placeholder="DD"
+                placeholderTextColor="#9CA3AF"
+                value={dia}
+                onChangeText={setDia}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              <TextInput
+                style={styles.birthInput}
+                placeholder="MM"
+                placeholderTextColor="#9CA3AF"
+                value={mes}
+                onChangeText={setMes}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              <TextInput
+                style={styles.birthInput}
+                placeholder="AAAA"
+                placeholderTextColor="#9CA3AF"
+                value={ano}
+                onChangeText={setAno}
+                keyboardType="numeric"
+                maxLength={4}
+              />
+            </View>
+          </View>
+          {/* Gênero */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <FontAwesome
+                name="venus-mars"
+                size={20}
+                color="#9CA3AF"
+                style={styles.inputIcon}
+              />
+              <Picker
+                selectedValue={genero}
+                style={styles.picker}
+                onValueChange={(itemValue) => {
+                  if (itemValue !== "") setGenero(itemValue);
+                }}
+                dropdownIconColor="#9CA3AF"
+              >
+                <Picker.Item
+                  label="Selecione o gênero"
+                  value=""
+                  color="#9CA3AF"
+                />
+                <Picker.Item label="Masculino" value="Masculino" />
+                <Picker.Item label="Feminino" value="Feminino" />
+                <Picker.Item label="Outro" value="Outro" />
+                <Picker.Item
+                  label="Prefiro não dizer"
+                  value="Prefiro não dizer"
+                />
+              </Picker>
+            </View>
+          </View>
+          {/* Botão Criar Conta */}
+          <TouchableOpacity
+            style={[
+              styles.registerButtonWrapper,
+              (!camposValidos || loading) && styles.registerButtonDisabled,
+            ]}
+            onPress={handleRegister}
+            disabled={!camposValidos || loading}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={["#A259F7", "#c85efd", "#be41fd"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.registerButton}
+            >
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.registerButtonText}>Criando...</Text>
+                </View>
+              ) : (
+                <Text style={styles.registerButtonText}>Criar Conta</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          {/* Link para login */}
+          <View style={styles.signInContainer}>
+            <Text style={styles.signInText}>Já tem uma conta? </Text>
+            <TouchableOpacity>
+              <Link href="/login">
+                <Text style={styles.signInLink}>Entrar</Text>
+              </Link>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </LinearGradient>
     </LinearGradient>
@@ -494,22 +444,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#A259F7",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    height: 56,
-    fontSize: 16,
-    color: "#374151",
-    marginBottom: 20,
-  },
 });
+

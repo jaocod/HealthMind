@@ -6,12 +6,12 @@ import { createClient, processLock, SupabaseClient } from '@supabase/supabase-js
 let _supabase: SupabaseClient | null = null
 
 function getEnv() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL
-  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_KEY
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
   return { url, key }
 }
 
-export function getSupabase() {
+export function getSupabase(): SupabaseClient {
   if (_supabase) return _supabase
 
   const { url, key } = getEnv()
@@ -29,7 +29,7 @@ export function getSupabase() {
       from: () => ({ select: async () => ({ data: null, error: new Error('Supabase not initialized') }) }),
     }
     _supabase = stub
-    return _supabase
+    return _supabase as SupabaseClient
   }
 
   _supabase = createClient(url, key, {

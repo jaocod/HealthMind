@@ -1,10 +1,8 @@
-import { useAuth } from "@clerk/clerk-expo";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function AuthTabsLayout() {
-  const { isSignedIn } = useAuth();
 
   // Você pode proteger as rotas aqui, se necessário
 

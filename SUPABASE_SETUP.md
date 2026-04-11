@@ -19,10 +19,10 @@ A integração com o Supabase foi concluída com sucesso! Seu projeto HealthMind
   - **challengeService**: Sistema de desafios
   - **achievementService**: Sistema de conquistas
 
-### 3. **Autenticação Integrada**
+### 3. **Autenticação com Supabase**
 - Provider personalizado em `app/providers/AuthProvider.tsx`
-- Sincronização entre Clerk e Supabase
 - Hook `useSupabaseAuth` para gerenciamento de sessão
+- Suporte nativo para login/registro/senha
 
 ### 4. **Componentes Atualizados**
 - **Home**: Salva entradas de humor no banco
@@ -39,9 +39,6 @@ Crie um arquivo `.env` na raiz do projeto:
 # Supabase Configuration
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Clerk Configuration (existing)
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 ```
 
 ### 2. **Criar Projeto no Supabase**
@@ -104,11 +101,12 @@ npm start
 
 ## 📱 Como Usar:
 
-1. **Login**: Use Clerk para autenticação
-2. **Humor**: Registre seu humor diário na tela Home
-3. **Desafios**: Complete desafios na tela IntensiveMood
-4. **Perfil**: Atualize suas informações na tela Profile
-5. **Profissionais**: Veja lista de profissionais disponíveis
+1. **Registro**: Crie uma conta com Email e Senha
+2. **Login**: Autentique-se com suas credenciais
+3. **Humor**: Registre seu humor diário na tela Home
+4. **Desafios**: Complete desafios na tela IntensiveMood
+5. **Perfil**: Atualize suas informações na tela Profile
+6. **Profissionais**: Veja lista de profissionais disponíveis
 
 ## 🚨 Importante:
 

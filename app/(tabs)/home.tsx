@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState, useEffect } from "react";
 import { getUserData, saveUserData } from "../utils/storage";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth } from "../providers/AuthProvider";
 import {  } from "./professional";
 import {
   View,
@@ -30,10 +30,10 @@ const STATUSBAR_HEIGHT =
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dailyNote, setDailyNote] = useState("");
-  const { user } = useUser();
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const moods = [
