@@ -1,6 +1,8 @@
 ---
 name: HealthMind
 description: Check for possible errors
+metadata:
+  internal: true
 ---
 
 # HealthMind
