@@ -20,11 +20,16 @@ export function getSupabase(): SupabaseClient {
     // Do not throw here to avoid breaking the router scanning step.
     // Return a minimal stub that will error when used if env not configured.
     console.warn('Supabase env vars missing: EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_KEY/ANON_KEY')
+    console.warn('URL:', url, 'Key:', key)
     // Create a lightweight stub object to avoid runtime crashes on import.
     const stub: any = {
       auth: {
         getSession: async () => ({ data: { session: null } }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        signInWithPassword: async () => ({ data: null, error: new Error('Supabase not initialized') }),
+        signUp: async () => ({ data: null, error: new Error('Supabase not initialized') }),
+        signOut: async () => ({ error: new Error('Supabase not initialized') }),
+        resetPasswordForEmail: async () => ({ data: null, error: new Error('Supabase not initialized') }),
       },
       from: () => ({ select: async () => ({ data: null, error: new Error('Supabase not initialized') }) }),
     }
